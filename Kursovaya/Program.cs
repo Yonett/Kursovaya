@@ -15,26 +15,7 @@ namespace Kursovaya
             }
             return result;
         }
-        // Сумма векторов (a + b)
-        static double[] VectorSum(double[] a, double[] b)
-        {
-            double[] result = new double[a.Length];
-            for (int i = 0; i <= a.Length; i++)
-            {
-                result[i] = a[i] + b[i];
-            }
-            return result;
-        }
-        // Разность векторов (a - b)
-        static double[] VectorDiff(double[] a, double[] b)
-        {
-            double[] result = new double[a.Length];
-            for (int i = 0; i < a.Length; i++)
-            {
-                result[i] = a[i] - b[i];
-            }
-            return result;
-        }
+        
         // Разреженая матрица в строчно-столбцовом формате
         class SparseMatrix
         {
@@ -55,6 +36,7 @@ namespace Kursovaya
                 this.ggl = ggl;
                 this.ggu = ggu;
             }
+            
             // Умножение матрицы на вектор x
             public double[] VectorMultiply(double[] x)
             {
@@ -73,14 +55,17 @@ namespace Kursovaya
 
                 return y;
             }
-        } 
+        }
+        
         // Класс-решатель СЛАУ методом ЛОС
         class SLAESolver
         {
+            // Локально-оптимальная схема
             public double[] LOS(SparseMatrix A, double[] b)
             {
-                int maxIter = 1000;
+                int maxIter = 100000;
                 double[] x = new double[A.N];
+
                 for (int i = 0; i < A.N; i++)
                 {
                     x[i] = 1;
@@ -88,25 +73,30 @@ namespace Kursovaya
 
                 double[] r, z, p, temp;
 
-                double alpha, beta, normSqr, nev = 0;
-                double eps = 1e-7;
+                double alpha, beta, pp, nev = 0;
+                double eps = 1e-16;
 
-                r = VectorDiff(b, A.VectorMultiply(x));
-                z = r;
+                r = new double[A.N];
+                z = new double[A.N];
+
+                temp = A.VectorMultiply(x);
+
+                for (int i = 0; i < A.N; i++)
+                {
+                    r[i] = b[i] - temp[i];
+                    z[i] = r[i];
+                }
                 p = A.VectorMultiply(r);
 
-                normSqr = ScalarMultiply(r, r);
+                nev = ScalarMultiply(r, r);
 
-                for (int i = 0; i < maxIter && normSqr > eps && normSqr != nev; i++)
+                for (int i = 0; i < maxIter && Math.Abs(nev) > eps; i++)
                 {
-                    nev = normSqr;
+                    pp = ScalarMultiply(p, p);
 
-                    alpha =
-                        ScalarMultiply(p, r)
-                    / //--------------------
-                        ScalarMultiply(p, p);
+                    alpha = ScalarMultiply(p, r) / pp;
 
-                    for (int j = 0; j < A.N; j ++)
+                    for (int j = 0; j < A.N; j++)
                     {
                         x[j] += alpha * z[j];
                         r[j] -= alpha * p[j];
@@ -114,53 +104,46 @@ namespace Kursovaya
 
                     temp = A.VectorMultiply(r);
 
-                    beta =
-                        -1 * ScalarMultiply(p, temp)
-                    / //-------------------------
-                          ScalarMultiply(p, p);
+                    beta = -ScalarMultiply(p, temp) / pp;
 
-                    normSqr -= alpha * alpha * ScalarMultiply(p, p);
-
-                    if (i % 2 == 0)
+                    for (int j = 0; j < A.N; j++)
                     {
-                        r = VectorDiff(b, A.VectorMultiply(x));
-                        z = r;
-                        p = A.VectorMultiply(r);
-                    }
-                    else
-                    {
-                        for (int j = 0; j < A.N; j++)
-                        {
-                            z[j] = r[j] + beta * z[j];
-                            p[j] = temp[j] + beta * p[j];
-                        }
+                        z[j] = r[j] + beta * z[j];
+                        p[j] = temp[j] + beta * p[j];
                     }
 
-                    Console.WriteLine("iter: {0}\t nev: {1}", i, Math.Sqrt(normSqr));
+                    nev = ScalarMultiply(r, r);
                 }
 
                 return x;
             }
+            
+            // Локально-оптимальная схема с LU-факторизацией
+            //public double[] LOS_LU(SparseMatrix A, double[] b)
+            //{
+                
+            //}
         }
+
 
         static void Main(string[] args)
         {
-            //double[] di = new double[] { 1, 5, 8, 12, 15, 18 };
-            //int[] ig = new int[] { 1, 1, 2, 2, 4, 5, 7 };
-            //int[] jg = new int[] { 1, 1, 2, 4, 2, 3 };
-            //double[] ggl = new double[] { 4, 10, 11, 14, 16, 17 };
-            //double[] ggu = new double[] { 2, 3, 6, 13, 7, 9 };
+            double[] di = new double[] { 1, 5, 8, 12, 15, 18 };
+            int[] ig = new int[] { 1, 1, 2, 2, 4, 5, 7 };
+            int[] jg = new int[] { 1, 1, 2, 4, 2, 3 };
+            double[] ggl = new double[] { 4, 10, 11, 14, 16, 17 };
+            double[] ggu = new double[] { 2, 3, 6, 13, 7, 9 };
 
-            double[] di = new double[] { 1, 5, 8 };
-            int[] ig = new int[] { 1, 1, 2, 3, 3 };
-            int[] jg = new int[] { 1, 2 };
-            double[] ggl = new double[] { 4, 1 };
-            double[] ggu = new double[] { 2, 1 };
+            //double[] di = new double[] { 1, 5, 8 };
+            //int[] ig = new int[] { 1, 1, 2, 3 };
+            //int[] jg = new int[] { 1, 2 };
+            //double[] ggl = new double[] { 4, 1 };
+            //double[] ggu = new double[] { 2, 1 };
 
             SparseMatrix test_matrix = new(di, ig, jg, ggl, ggu);
 
-            //double[] x = new double[] { 1, 1, 1, 1, 1, 1 };
-            double[] x = new double[] { 1, 2, 3 };
+            double[] x = new double[] { 1, 2, 3, 4, 5, 6 };
+            //double[] x = new double[] { 1, 2, 3 };
 
             double[] y = test_matrix.VectorMultiply(x);
 
