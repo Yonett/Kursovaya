@@ -32,6 +32,8 @@ namespace Kursovaya
         public double[] b;   // Массив-вектор правой части
         public double[] x;   // Массив-вектор решения
 
+        public double[,] global; // Глобальная матрица
+
         public double[] temp1, temp2;   // Вспомогательные массивы
 
         // Конструктор класса данных
@@ -42,13 +44,23 @@ namespace Kursovaya
             this.maxIter = maxIter;
             this.eps = eps;
 
+            int arrSize = (nodes * (nodes - 1)) / 2;
+
             ig = new int[nodes + 1];
+            jg = new int[arrSize];
 
             di = new double[nodes];
+            ggl = new double[arrSize];
+            ggu = new double[arrSize];
+
             d = new double[nodes];
+            l = new double[arrSize];
+            u = new double[arrSize];
 
             b = new double[nodes];
             x = new double[nodes];
+
+            global = new double[nodes, nodes];
 
             temp1 = new double[nodes];
             temp2 = new double[nodes];

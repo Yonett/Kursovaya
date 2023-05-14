@@ -11,6 +11,7 @@ namespace Kursovaya
     {
         public double x;
         public double y;
+        public int condition1 = 0;
         // Конструктор класса
         public Node(double x, double y)
         {
