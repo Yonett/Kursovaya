@@ -15,10 +15,13 @@ namespace Kursovaya
             switch (area)
             {
                 case 1:
-                    result = 20;
+                    result = 3;
                     break;
                 case 2:
-                    result = 0;
+                    result = 2 * x;
+                    break;
+                case 3:
+                    result = 2 * x * y;
                     break;
                 default:
                     break;
@@ -35,9 +38,12 @@ namespace Kursovaya
             switch (area)
             {
                 case 1:
-                    result = 10;
+                    result = 2;
                     break;
                 case 2:
+                    result = 1;
+                    break;
+                case 3:
                     result = 1;
                     break;
                 default:
@@ -54,6 +60,49 @@ namespace Kursovaya
 
             switch (area)
             {
+                case 1:
+                    result = 3;
+                    break;
+                case 2:
+                    result = 2;
+                    break;
+                case 3:
+                    result = 2;
+                    break;
+                default:
+                    break;
+            }
+
+            return result;
+        }
+
+        // Параметр хи
+        public static double Hi(int area)
+        {
+            double result = 0;
+
+            switch (area)
+            {
+                case 1:
+                    result = 3;
+                    break;
+                default:
+                    break;
+            }
+
+            return result;
+        }
+
+        // Параметр сигма
+        public static double Sigma(int area)
+        {
+            double result = 0;
+
+            switch (area)
+            {
+                case 1:
+                    result = 3;
+                    break;
                 default:
                     break;
             }
@@ -64,46 +113,24 @@ namespace Kursovaya
         // Функция u истинная
         public static double Actual(double x, double y, int type)
         {
-            double result;
+            double result = 0;
 
             switch(type)
             {
+                case 1:
+                    result = 1;
+                    break;
+                case 2:
+                    result = x;
+                    break;
+                case 3:
+                    result = x * y;
+                    break;
                 default:
-                    result = y * y;
                     break;
             }
 
             return result;
-        }
-
-        // Скалярное произведение векторов (x, y)
-        public static double ScalarMultiply(double[] x, double[] y)
-        {
-            double result = 0;
-            for (int i = 0; i < x.Length; i++)
-            {
-                result += x[i] * y[i];
-            }
-            return result;
-        }
-
-        // Умножение разреженой матрицы на вектор
-        public static double[] VectorMultiply(Data data, double[] x)
-        {
-            double[] y = new double[data.nodes];
-
-            for (int i = 0; i < data.nodes; i++)
-            {
-                y[i] = x[i] * data.di[i];
-
-                for (int j = data.ig[i]; j < data.ig[i + 1]; j++)
-                {
-                    y[i] += data.ggl[j] * x[data.jg[j]];
-                    y[data.jg[j]] += data.ggu[j] * x[i];
-                }
-            }
-
-            return y;
         }
 
         // Рассчёт detD для конечного элемента (5.74)
@@ -229,6 +256,10 @@ namespace Kursovaya
                             data.ig[i + 1] = size + 1;
                             data.jg[size] = j;
                         }
+                        else
+                        {
+                            data.ig[i + 1] = size + 1;
+                        }
                     }
                 }
             }
@@ -268,6 +299,7 @@ namespace Kursovaya
 
         static void Main(string[] args)
         {
+            int test = 3;
             
             List<Node> nodes = new();
             List<Cell> cells = new();
@@ -305,7 +337,7 @@ namespace Kursovaya
                         int.Parse(values[0]) - 1, // 1 вершина
                         int.Parse(values[1]) - 1, // 2 вершина
                         int.Parse(values[2]) - 1, // 3 вершина
-                        int.Parse(values[3])      // Область
+                        /*int.Parse(values[3])*/ test      // Область
                         ));
                 }
                 reader.Close();
@@ -319,17 +351,29 @@ namespace Kursovaya
                 {
                     string[] values = s.Split('\t');
                     i = int.Parse(values[0]) - 1;
-                    nodes[i].condition1 = int.Parse(values[1]);
+                    //nodes[i].condition1 = int.Parse(values[1]);
+                    nodes[i].condition1 = test;
                 }
                 reader.Close();
             }
 
-            Data data = new(nodes.Count, cells.Count, 10000, 1e-16);
+            // Инициализация класса данных
+            Data data = new(nodes.Count, cells.Count, 10000, 1e-30);
 
-            double[,] G = new double[3, 3];
-            double[,] M = new double[3, 3];
-            double[] b = new double[3];
+            double[] u0 = new double[nodes.Count];
+            double[] u1 = new double[nodes.Count];
 
+            for (int i = 0; i < nodes.Count; i++)
+            {
+                u0[i] = 1;
+                u1[i] = 2;
+            }
+
+            double[,] G = new double[3, 3]; // Локальная масса жёсткости
+            double[,] M = new double[3, 3]; // Локальная масса масс
+            double[] b = new double[3];     // Локальный вектор правой части
+
+            // Сборка глобальной матрицы
             foreach (Cell cell in cells)
             {
                 CalcDetD(cell, nodes);
@@ -347,29 +391,41 @@ namespace Kursovaya
                 }
             }
 
+            for (int i = 0; i < data.nodes; i++)
+            {
+                for (int j = 0; j < data.nodes - 1; j++)
+                    Console.Write("{0} ", data.global[i, j]);
+                Console.WriteLine(data.global[i, data.nodes - 1]);
+            }
+
             GenerateSparseGlobal(data);
             Consider1(nodes, data);
 
-            double[] x = new double[] { 1, 2, 3, 4, 5 };
-
-            double[] res = VectorMultiply(data, x);
+            for (int i = 0; i < data.nodes; i++)
+            {
+                for (int j = 0; j < data.nodes - 1; j++)
+                    Console.Write("{0} ", data.global[i, j]);
+                Console.WriteLine(data.global[i, data.nodes - 1]);
+            }
 
             for (int i = 0; i < data.nodes; i++)
-                Console.WriteLine(res[i]);
+            {
+                Console.WriteLine(data.b[i]);
+            }
 
             SLAESolver solver = new();
 
-            solver.LOS(data, res);
+            //solver.LOS(data);
+
+            //for (int i = 0; i < data.nodes; i++)
+            //    Console.WriteLine(data.x[i]);
+
+            solver.LOS_LUsq(data);
 
             for (int i = 0; i < data.nodes; i++)
+            {
                 Console.WriteLine(data.x[i]);
-
-            //solver.LOS_LU(data, res);
-
-            //for (int i = 0; i < N; i++)
-            //{
-            //    Console.WriteLine(data.x[i]);
-            //}
+            }
         }
     }
 }

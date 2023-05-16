@@ -10,191 +10,192 @@ namespace Kursovaya
     // Класс-решатель СЛАУ
     internal class SLAESolver
     {
-        // LU факторизация
-        static void CalcLU(Data data)
+        // Скалярное произведение векторов (x, y)
+        public static double ScalarMultiply(double[] x, double[] y)
         {
-            data.l = new double[data.ggl.Length];
-            data.u = new double[data.ggu.Length];
-
-            for (int i = 0; i < data.di.Length; i++)
-                data.d[i] = data.di[i];
-            for (int i = 0; i < data.ggl.Length; i++)
-                data.l[i] = data.ggl[i];
-            for (int i = 0; i < data.ggu.Length; i++)
-                data.u[i] = data.ggu[i];
-
-            double sumU, sumL, sumD;
-            int N = data.nodes;
-
-            for (int i = 0; i < N; i++)
+            double result = 0;
+            for (int i = 0; i < x.Length; i++)
             {
-                sumD = 0;
-
-                int begI = data.ig[i];
-                int endI = data.ig[i + 1];
-                for (int igi = begI; igi < endI; igi++)
-                {
-                    sumU = 0;
-                    sumL = 0;
-
-                    int Jindex = data.jg[igi];
-
-                    for (int igj = begI; igj < igi; igj++)
-                    {
-                        int begJ = data.ig[Jindex];
-                        int endJ = data.ig[Jindex + 1];
-
-                        for (int jgi = begJ; jgi < endJ; jgi++)
-                        {
-                            if (data.jg[igj] == data.jg[jgi])
-                            {
-                                sumL += data.l[igj] * data.u[jgi];
-                                sumU += data.l[jgi] * data.u[igj];
-                            }
-                        }
-                    }
-                    data.l[igi] -= sumL;
-                    //data.l[igi] /= data.d[Jindex];
-                    data.u[igi] -= sumU;
-                    data.u[igi] /= data.d[Jindex];
-                    sumD += data.l[igi] * data.u[igi];
-                }
-
-                //data.d[i] = Math.Sqrt(data.d[i] - sumD);
-                data.d[i] = data.d[i] - sumD;
+                result += x[i] * y[i];
             }
+            return result;
         }
 
-        // Прямой ход Ly = F
-        static void CalcDir(Data data, double[] y, double[] F)
+        // Умножение разреженой матрицы на вектор
+        public static double[] VectorMultiply(Data data, double[] x)
         {
-            double sum, buf;
-            int N = data.nodes;
+            double[] y = new double[data.nodes];
 
-            for (int i = 0; i < N; i++)
+            for (int i = 0; i < data.nodes; i++)
             {
-                y[i] = F[i];
-            }
+                y[i] = x[i] * data.di[i];
 
-            for (int i = 0; i < N; i++)
-            {
-                sum = 0;
-
-                int begI = data.ig[i];
-                int endI = data.ig[i + 1];
-
-                for (int igi = begI; igi < endI; igi++)
+                for (int j = data.ig[i]; j < data.ig[i + 1]; j++)
                 {
-                    sum += y[data.jg[igi]] * data.l[igi];
-                }
-
-                buf = y[i] - sum;
-                y[i] = buf / data.d[i];
-            }
-        }
-
-        // Обратный ход Ux = y
-        static void CalcRev(Data data, double[] X, double[] y)
-        {
-            int N = data.nodes;
-
-            for (int i = 0; i < N; i++)
-            {
-                X[i] = y[i];
-            }
-
-            for (int i = N - 1; i >= 0; i--)
-            {
-                int begI = data.ig[i];
-                int endI = data.ig[i + 1];
-
-                for (int igi = begI; igi < endI; igi++)
-                {
-                    X[data.jg[igi]] -= X[i] * data.u[igi];
+                    y[i] += data.ggl[j] * x[data.jg[j]];
+                    y[data.jg[j]] += data.ggu[j] * x[i];
                 }
             }
+
+            return y;
         }
 
-        // Локально-оптимальная схема с LU-факторизацией
-        public void LOS_LU(Data data, double[] b)
+        // Вычисление невязки
+        static double CalcDiscrepancy(Data data)
         {
-            double alpha, beta, norm, temp_nev = 0;
+            double sum1 = 0, sum2 = 0;
 
-            int N = data.nodes;
-
-            for (int i = 0; i < N; i++)
-            {
-                data.x[i] = 1;
-            }
-
-            CalcLU(data);
-            // A * x0
             data.temp1 = VectorMultiply(data, data.x);
 
-            // f - A * x0
-            for (int i = 0; i < N; i++)
+            for (int i = 0; i < data.nodes; i++)
             {
-                data.temp1[i] = data.b[i] - data.temp1[i];
+                sum1 += (data.b[i] - data.temp1[i]) * (data.b[i] - data.temp1[i]);
+                sum2 += data.b[i] * data.b[i];
             }
 
-            // L * r0 = f - A * x0
-            CalcDir(data, data.r, data.temp1);
+            return Math.Sqrt(sum1 / sum2);
+        }
 
-            // U * z0 = r0
-            CalcRev(data, data.z, data.r);
+        public static void LU_sq(Data data)
+        {
+            for (int i = 0; i < data.l.Length; i++)
+            {
+                data.l[i] = data.ggl[i];
+                data.u[i] = data.ggu[i];
+            }
 
-            // A * z0
+            for (int i = 0; i < data.d.Length; i++)
+                data.d[i] = data.di[i];
+
+            for (int i = 0; i < data.d.Length; i++)
+            {
+                double sumd = 0;
+                int i0 = data.ig[i];
+                int i1 = data.ig[i + 1];
+                for (int k = i0; k < i1; k++)
+                {
+                    int j = data.jg[k];
+                    double sl = 0, su = 0;
+                    int j0 = data.ig[j];
+                    int j1 = data.ig[j + 1];
+                    int ki = i0;
+                    int kj = j0;
+                    for (; ki < k && kj < j1;)
+                    {
+                        int jl = data.jg[ki];
+                        int ju = data.jg[kj];
+                        if (jl == ju)
+                        {
+                            sl += data.u[kj] * data.l[ki];
+                            su += data.l[kj] * data.u[ki];
+                            ki++; kj++;
+                        }
+                        else if (jl < ju) ki++;
+                        else kj++;
+                    }
+                    data.u[k] = (data.u[k] - su) / data.d[j];
+                    data.l[k] = (data.l[k] - sl) / data.d[j];
+                    sumd += data.u[k] * data.l[k];
+                }
+                data.d[i] = Math.Sqrt(Math.Abs(data.d[i] - sumd));
+            }
+        }
+
+        public static void Straight(Data data, double[] a, double[] c)
+        {
+            for (int i = 0; i < a.Length; i++)
+            {
+                double sum = 0;
+                int i0 = data.ig[i];
+                int i1 = data.ig[i + 1];
+                for (int k = i0; k < i1; k++)
+                {
+                    int j = data.jg[k];
+                    sum += a[j] * data.l[k];
+                }
+                a[i] = (c[i] - sum) / data.d[i];
+            }
+        }
+
+        public static void Reverse(Data data, double[] a, double[] c)
+        {
+            int n = a.Length;
+            for (int i = 0; i < n; i++)
+                a[i] = c[i];
+            for (int i = n - 1; i >= 0; i--)
+            {
+                int i0 = data.ig[i];
+                int i1 = data.ig[i + 1];
+                a[i] /= data.d[i];
+                for (int k = i1 - 1; k >= i0; k--)
+                {
+                    int j = data.jg[k];
+                    a[j] -= a[i] * data.u[k];
+                }
+            }
+        }
+
+        public void LOS_LUsq(Data data)
+        {
+            int n = data.di.Length;
+            double scalar1 = 0;
+            double scalar2 = 0;
+
+            int iters = 0;
+
+            LU_sq(data);
+
+            data.temp1 = VectorMultiply(data, data.x);
+            for (int i = 0; i < n; i++)
+            {
+                data.temp2[i] = data.b[i] - data.temp1[i];
+            }
+
+            Straight(data, data.r, data.temp2);
+
+            Reverse(data, data.z, data.r);
+
             data.temp1 = VectorMultiply(data, data.z);
 
-            // L * p0 = A * z0
-            CalcDir(data, data.p, data.temp1);
+            Straight(data, data.p, data.temp1);
 
-            norm = ScalarMultiply(data.x, data.x);
-
-            int k;
-
-            for (k = 0; k < data.maxIter && Math.Abs(norm) > data.eps && norm != temp_nev; k++)
+            double nev = ScalarMultiply(data.r, data.r);
+            for (int k = 0; k < data.maxIter && nev > data.eps; k++)
             {
-                // если невязка не изменилась, то выходим из итерационного процесса
-                temp_nev = norm;
-
-                alpha = ScalarMultiply(data.p, data.x) / ScalarMultiply(data.p, data.p);
-
-                for (int i = 0; i < N; i++)
+                iters++;
+                scalar1 = ScalarMultiply(data.p, data.r);
+                scalar2 = ScalarMultiply(data.p, data.p);
+                double alpha = scalar1 / scalar2;
+                for (int i = 0; i < n; i++)
                 {
                     data.x[i] += alpha * data.z[i];
                     data.r[i] -= alpha * data.p[i];
                 }
 
-                // U * temp = x
-                CalcRev(data, data.temp1, data.x);
+                Reverse(data, data.temp1, data.r);
 
-                // A * U-1 * x = temp0
                 data.temp2 = VectorMultiply(data, data.temp1);
 
-                // L * temp = A * U-1 * x 
-                CalcDir(data, data.temp1, data.temp2);
+                Straight(data,data.temp1, data.temp2);
 
-                double Scal = ScalarMultiply(data.p, data.p);
-                if (Math.Abs(Scal) < 1e-60) break;
+                scalar1 = ScalarMultiply(data.p, data.temp1);
 
-                beta = -1 * ScalarMultiply(data.p, data.temp1) / Scal;
+                double beta = -scalar1 / scalar2;
 
-                // U * temp0 = x
-                CalcRev(data, data.temp2, data.x);
+                Reverse(data, data.temp2, data.r);
 
-                norm -= alpha * alpha * ScalarMultiply(data.p, data.p);
-
-                for (int i = 0; i < N; i++)
+                for (int i = 0; i < n; i++)
                 {
                     data.z[i] = data.temp2[i] + beta * data.z[i];
                     data.p[i] = data.temp1[i] + beta * data.p[i];
                 }
+                nev = ScalarMultiply(data.r, data.r);
             }
+            Console.WriteLine("iters: {0}", iters);
         }
 
         // Локально-оптимальная схема
-        public void LOS(Data data, double[] b)
+        public void LOS(Data data)
         {
             int N = data.nodes;
 
@@ -203,13 +204,13 @@ namespace Kursovaya
                 data.x[i] = 0; // Начальное приближение
             }
 
-            double alpha, beta, nev = 0;
+            double alpha, beta, nev;
 
             data.temp1 = VectorMultiply(data, data.x);
 
             for (int i = 0; i < data.nodes; i++)
             {
-                data.r[i] = b[i] - data.temp1[i];
+                data.r[i] = data.b[i] - data.temp1[i];
                 data.z[i] = data.r[i];
             }
             data.p = VectorMultiply(data, data.r);
@@ -220,7 +221,7 @@ namespace Kursovaya
             {
 
                 alpha = ScalarMultiply(data.p, data.r)
-                    / //------------------------------
+                    / //-------------------------------
                         ScalarMultiply(data.p, data.p);
 
                 for (int j = 0; j < data.nodes; j++)
@@ -232,7 +233,7 @@ namespace Kursovaya
                 data.temp1 = VectorMultiply(data, data.r);
 
                 beta = (-1) * ScalarMultiply(data.p, data.temp1)
-                   / //----------------------------------------
+                   / //-----------------------------------------
                        ScalarMultiply(data.p, data.p);
 
                 for (int j = 0; j < data.nodes; j++)
