@@ -33,8 +33,8 @@ namespace Kursovaya
         public double[] x;   // Массив-вектор решения
 
         public double[,] G; // Глобальная матрица жесткости
-        public double[,] Mhi; // Глобальная матрица массы компоненты хи
-        public double[,] Msigma; // Глобальная матрица массы компоненты сигма
+        public double[,] MHi; // Глобальная матрица массы компоненты хи
+        public double[,] MSigma; // Глобальная матрица массы компоненты сигма
         public double[,] global; // Глобальная матрица A
 
         public double[] temp1, temp2;   // Вспомогательные массивы
@@ -63,9 +63,9 @@ namespace Kursovaya
             b = new double[nodes];
             x = new double[nodes];
 
-            G = new double[nodes, nodes];
-            Mhi = new double[nodes, nodes];
-            Msigma = new double[nodes, nodes];
+            G = new double[nodes, nodes]; 
+            MHi = new double[nodes, nodes];
+            MSigma = new double[nodes, nodes];
             global = new double[nodes, nodes];
 
             temp1 = new double[nodes];

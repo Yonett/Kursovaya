@@ -41,7 +41,7 @@ namespace Kursovaya
         }
 
         // Вычисление невязки
-        static double CalcDiscrepancy(Data data)
+        public double CalcDiscrepancy(Data data)
         {
             double sum1 = 0, sum2 = 0;
 
@@ -56,6 +56,7 @@ namespace Kursovaya
             return Math.Sqrt(sum1 / sum2);
         }
 
+        // Разложение LUsq
         public static void LU_sq(Data data)
         {
             for (int i = 0; i < data.l.Length; i++)
@@ -97,10 +98,11 @@ namespace Kursovaya
                     data.l[k] = (data.l[k] - sl) / data.d[j];
                     sumd += data.u[k] * data.l[k];
                 }
-                data.d[i] = Math.Sqrt(/*Math.Abs*/(data.d[i] - sumd));
+                data.d[i] = Math.Sqrt(Math.Abs(data.d[i] - sumd));
             }
         }
 
+        // Прямой ход (стр. 875)
         public static void Straight(Data data, double[] a, double[] c)
         {
             for (int i = 0; i < a.Length; i++)
@@ -117,6 +119,7 @@ namespace Kursovaya
             }
         }
 
+        // Обратный ход (стр. 876)
         public static void Reverse(Data data, double[] a, double[] c)
         {
             int n = a.Length;
@@ -135,6 +138,7 @@ namespace Kursovaya
             }
         }
 
+        // Локально-оптимальная схема с неполной факторизацией
         public void LOS_LUsq(Data data)
         {
             int n = data.di.Length;
@@ -191,7 +195,6 @@ namespace Kursovaya
                 }
                 nev = ScalarMultiply(data.r, data.r);
             }
-            Console.WriteLine("iters: {0}", iters);
         }
 
         // Локально-оптимальная схема

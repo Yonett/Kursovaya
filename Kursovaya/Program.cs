@@ -8,14 +8,14 @@ namespace Kursovaya
     internal class Program
     {
         // Функция f правой части уравнения
-        public static double Target(double x, double y, int area)
+        public static double Target(double x, double y, double t, int area)
         {
             double result = 0;
 
             switch (area)
             {
                 case 1:
-                    result = 3;
+                    result = 2;
                     break;
                 case 2:
                     result = 2 * x;
@@ -24,7 +24,13 @@ namespace Kursovaya
                     result = 2 * x * y;
                     break;
                 case 4:
-                    result = 2 * x * x - 1;
+                    result = 2 * x * t + 2 * x;
+                    break;
+                case 5:
+                    result = 2 * x * x * t + 2 * x * x - 1;
+                    break;
+                case 6:
+                    result = 2 * x * x * y * y * t + 2 * x * x * y * y - x * x - y * y;
                     break;
                 default:
                     break;
@@ -41,7 +47,7 @@ namespace Kursovaya
             switch (area)
             {
                 case 1:
-                    result = 2;
+                    result = 1;
                     break;
                 case 2:
                     result = 1;
@@ -50,6 +56,12 @@ namespace Kursovaya
                     result = 1;
                     break;
                 case 4:
+                    result = 1;
+                    break;
+                case 5:
+                    result = 1;
+                    break;
+                case 6:
                     result = 1;
                     break;
                 default:
@@ -93,7 +105,22 @@ namespace Kursovaya
             switch (area)
             {
                 case 1:
-                    result = 3;
+                    result = 2;
+                    break;
+                case 2:
+                    result = 2;
+                    break;
+                case 3:
+                    result = 2;
+                    break;
+                case 4:
+                    result = 2;
+                    break;
+                case 5:
+                    result = 2;
+                    break;
+                case 6:
+                    result = 2;
                     break;
                 default:
                     break;
@@ -110,7 +137,22 @@ namespace Kursovaya
             switch (area)
             {
                 case 1:
-                    result = 3;
+                    result = 2;
+                    break;
+                case 2:
+                    result = 2;
+                    break;
+                case 3:
+                    result = 2;
+                    break;
+                case 4:
+                    result = 2;
+                    break;
+                case 5:
+                    result = 2;
+                    break;
+                case 6:
+                    result = 2;
                     break;
                 default:
                     break;
@@ -120,23 +162,29 @@ namespace Kursovaya
         }
 
         // Функция u истинная
-        public static double Actual(double x, double y, int type)
+        public static double Actual(double x, double y, double t, int type)
         {
             double result = 0;
 
             switch(type)
             {
                 case 1:
-                    result = 1;
+                    result = t;
                     break;
                 case 2:
-                    result = x;
+                    result = x * t;
                     break;
                 case 3:
-                    result = x * y;
+                    result = x * y * t;
                     break;
                 case 4:
-                    result = x * x;
+                    result = x * t * t;
+                    break;
+                case 5:
+                    result = x * x * t * t;
+                    break;
+                case 6:
+                    result = x * x * y * y * t * t;
                     break;
                 default:
                     break;
@@ -199,16 +247,6 @@ namespace Kursovaya
                     G[i, j] = lambda * detD * (cell.alpha[i, 1] * cell.alpha[j, 1] + cell.alpha[i, 2] * cell.alpha[j, 2]) / 2;
                 }
             }
-
-            //for (int i = 0; i < 3; i++)
-            //{
-            //    double sum = 0;
-            //    for (int j = 0; j < 3; j++)
-            //    {
-            //        sum += G[i, j];
-            //    }
-            //    Console.WriteLine("[{0}]\tSum in matrix G = {1}", i + 1, sum);
-            //}
         }
 
         // Рассчёт локальной матрицы массы
@@ -235,13 +273,59 @@ namespace Kursovaya
             }
         }
 
+        public static void CalcMHi(Cell cell, double[,] M)
+        {
+            double hi = Hi(cell.area);
+
+            double detD = Math.Abs(cell.detD);
+
+            double[,] values = new double[3, 3]
+            {
+                { 2, 1, 1 },
+                { 1, 2, 1 },
+                { 1, 1, 2 }
+            };
+
+            // Рассчёт значений компонент матрицы масс (5.81)
+            for (int i = 0; i < 3; i++)
+            {
+                for (int j = 0; j < 3; j++)
+                {
+                    M[i, j] = hi * detD * values[i, j] / 24;
+                }
+            }
+        }
+
+        public static void CalcMSigma(Cell cell, double[,] M)
+        {
+            double sigma = Sigma(cell.area);
+
+            double detD = Math.Abs(cell.detD);
+
+            double[,] values = new double[3, 3]
+            {
+                { 2, 1, 1 },
+                { 1, 2, 1 },
+                { 1, 1, 2 }
+            };
+
+            // Рассчёт значений компонент матрицы масс (5.81)
+            for (int i = 0; i < 3; i++)
+            {
+                for (int j = 0; j < 3; j++)
+                {
+                    M[i, j] = sigma * detD * values[i, j] / 24;
+                }
+            }
+        }
+
         // Рассчёт локального вектора правой части
-        public static void CalcB(Cell cell, List<Node> nodes, double[] b)
+        public static void CalcB(Cell cell, List<Node> nodes, double[] b, double t)
         {
             double detD = Math.Abs(cell.detD);
             double[] f = new double[3];
             for (int i = 0; i < 3; i++)
-                f[i] = Target(nodes[cell.v[i]].x, nodes[cell.v[i]].y, cell.area);
+                f[i] = Target(nodes[cell.v[i]].x, nodes[cell.v[i]].y, t, cell.area);
 
             b[0] = detD * (f[0] / 12 + f[1] / 24 + f[2] / 24);
             b[1] = detD * (f[0] / 24 + f[1] / 12 + f[2] / 24);
@@ -279,7 +363,7 @@ namespace Kursovaya
         }
 
         // Учёт первых краевых условий
-        public static void Consider1(List<Node> nodes, Data data)
+        public static void Consider1(List<Node> nodes, Data data, double t)
         {
             for (int i = 0; i < data.nodes; i++)
             {
@@ -305,24 +389,42 @@ namespace Kursovaya
                             data.ggu[j] = 0;
 
                     // В правой части замещаем значение на значение функции первого краевого условия
-                    data.b[i] = Actual(nodes[i].x, nodes[i].y, nodes[i].condition1);
+                    data.b[i] = Actual(nodes[i].x, nodes[i].y, t, nodes[i].condition1);
                 }
             }
         }
 
+        public static double[] MatrixVector(double[,] matrix, double[] vector)
+        {
+            int n = vector.Length;
+            double[] result = new double[n];
+
+            for (int i = 0; i < n; i++)
+                for (int k = 0; k < n; k++)
+                    result[i] += matrix[i, k] * vector[k];
+
+            return result;
+        }
+
         static void Main(string[] args)
         {
-            int test = 4;
-            
-            List<Node> nodes = new();
-            List<Cell> cells = new();
+            int test = 1;
+
+            List<Node> nodes = new(); // Узлы сетки
+            List<Cell> cells = new(); // Конечные элементы
+            List<double[]> solutions = new(); // Решения по времени
+            List<double> times = new(); // Временные точки
+
+            double deltaT, deltaT1, deltaT0;
+            double actual_value, t, error, d;
 
             string path = @"C:\Users\User\Documents\kurs_test";
 
-            string[] files = { "nodes.txt", "cells.txt", "condition1.txt" };
+            string[] files = { "nodes.txt", "cells.txt", "condition1.txt", "t.txt" };
 
             string? s;
             StreamReader reader;
+            StreamWriter writer;
 
             // Заполнение списка узлов расчётной обалсти
             using (reader = new(Path.Combine(path, files[0])))
@@ -370,87 +472,137 @@ namespace Kursovaya
                 reader.Close();
             }
 
+            // Считывание данных о временных промежутках
+            using (reader = new(Path.Combine(path, files[3])))
+            {
+                while ((s = reader.ReadLine()) != null)
+                    times.Add(double.Parse(s));
+                reader.Close();
+            }
+
             // Инициализация класса данных
             Data data = new(nodes.Count, cells.Count, 10000, 1e-30);
 
-            double[] u0 = new double[nodes.Count];
-            double[] u1 = new double[nodes.Count];
+            double[] temp1 = new double[nodes.Count];
+            double[] temp2 = new double[nodes.Count];
+            double[] temp3 = new double[nodes.Count];
+            double[] temp4 = new double[nodes.Count];
 
-            for (int i = 0; i < nodes.Count; i++)
+            for (int i = 0; i < 2; i++)
             {
-                u0[i] = 1;
-                u1[i] = 2;
+                solutions.Add(new double[nodes.Count]);
+                for (int j = 0; j < data.nodes; j++)
+                {
+                    solutions[i][j] = Actual(nodes[j].x, nodes[j].y, times[i], test);
+                }
             }
 
             double[,] G = new double[3, 3]; // Локальная масса жёсткости
-            double[,] M = new double[3, 3]; // Локальная масса масс
+            double[,] MHi = new double[3, 3]; // Локальная масса масс хи
+            double[,] MSigma = new double[3, 3]; // Локальная масса масс сигма
             double[] b = new double[3];     // Локальный вектор правой части
 
-            // Сборка глобальной матрицы
             foreach (Cell cell in cells)
             {
                 CalcDetD(cell, nodes);
 
                 CalcG(cell, nodes, G);
-                CalcM(cell, M);
-
-                CalcB(cell, nodes, b);
+                CalcMHi(cell, MHi);
+                CalcMSigma(cell, MSigma);
 
                 for (int i = 0; i < 3; i++)
                 {
-                    data.b[cell.v[i]] += b[i];
                     for (int j = 0; j < 3; j++)
-                        data.global[cell.v[i], cell.v[j]] += G[i, j] + M[i, j];
+                    {
+                        data.G[cell.v[i], cell.v[j]] += G[i, j];
+                        data.MHi[cell.v[i], cell.v[j]] += MHi[i, j];
+                        data.MSigma[cell.v[i], cell.v[j]] += MSigma[i, j];
+                    }
                 }
             }
 
-            for (int i = 0; i < data.nodes; i++)
+            for (int k = 2; k < times.Count; k++)
             {
-                for (int j = 0; j < data.nodes - 1; j++)
-                    Console.Write("{0} ", data.global[i, j]);
-                Console.WriteLine(data.global[i, data.nodes - 1]);
-            }
+                error = 0;
+                d = 0;
+                solutions.Add(new double[nodes.Count]);
 
-            for (int i = 0; i < data.nodes; i++)
-            {
-                Console.WriteLine(data.b[i]);
-            }
+                deltaT = times[k] - times[k - 2];
+                deltaT1 = times[k - 1] - times[k - 2];
+                deltaT0 = times[k] - times[k - 1];
 
-            GenerateSparseGlobal(data);
-            Consider1(nodes, data);
+                temp1 = MatrixVector(data.MHi, solutions[k - 2]);
+                temp2 = MatrixVector(data.MHi, solutions[k - 1]);
+                temp3 = MatrixVector(data.MSigma, solutions[k - 2]);
+                temp4 = MatrixVector(data.MSigma, solutions[k - 1]);
 
-            for (int i = 0; i < data.nodes; i++)
-            {
-                for (int j = 0; j < data.nodes - 1; j++)
-                    Console.Write("{0} ", data.global[i, j]);
-                Console.WriteLine(data.global[i, data.nodes - 1]);
-            }
+                // Сборка глобальной матрицы
+                foreach (Cell cell in cells)
+                {
+                    CalcB(cell, nodes, b, times[k]);
 
-            for (int i = 0; i < data.nodes; i++)
-            {
-                Console.WriteLine(data.b[i]);
-            }
+                    for (int i = 0; i < 3; i++)
+                    {
+                        data.b[cell.v[i]] += b[i];
+                    }
+                }
 
-            for (int i = 0; i < data.nodes; i++)
-            {
-                double sum = 0;
-                for (int j = 0; j < data.nodes; j++)
-                    sum += data.global[i, j];
-                Console.WriteLine("Global Sum in str {0} = {1}", i + 1, sum);
-            }
+                for (int i = 0; i < data.nodes; i++)
+                {
+                    data.b[i] -= temp1[i] * 2 / (deltaT1 * deltaT);
+                    data.b[i] += temp2[i] * 2 / (deltaT1 * deltaT0);
 
-            SLAESolver solver = new();
+                    data.b[i] -= temp3[i] * deltaT0 / (deltaT1 * deltaT);
+                    data.b[i] += temp4[i] * deltaT / (deltaT1 * deltaT0);
 
-            //solver.LOS(data);
+                    for (int j = 0; j < data.nodes; j++)
+                        data.global[i, j] +=
+                            data.MHi[i, j] * 2 / (deltaT * deltaT0) +
+                            data.MSigma[i, j] * (deltaT + deltaT0) / (deltaT * deltaT0) -
+                            data.G[i, j];
+                }
 
-            //for (int i = 0; i < data.nodes; i++)
-            //    Console.WriteLine(data.x[i]);
+                GenerateSparseGlobal(data);
+                Consider1(nodes, data, times[k]);
 
-            solver.LOS_LUsq(data);
+                SLAESolver solver = new();
 
-            for (int i = 0; i < data.nodes; i++)
-            {
-                Console.WriteLine(data.x[i]);
+                solver.LOS_LUsq(data);
+
+                Console.WriteLine("{0}", times[k]);
+                Console.WriteLine();
+                for (int i = 0; i < data.nodes; i++)
+                {
+                    Console.WriteLine(data.x[i]);
+                    solutions[k][i] = data.x[i];
+                }
+                Console.WriteLine();
+
+                using (writer = new(Path.Combine(path, test.ToString(), times[k].ToString() + ".csv")))
+                {
+                    for (int i = 0; i < data.x.Length; i++)
+                    {
+                        actual_value = Actual(nodes[i].x, nodes[i].y, times[k], cells[0].area);
+
+                        t = Math.Abs(actual_value - data.x[i]);
+
+                        error += t * t;
+                        d += actual_value * actual_value;
+
+                        writer.WriteLine("{0:E}; {1:E}; {2:E}; {3:E}; {4:E}",
+                            nodes[i].x, nodes[i].y, actual_value, data.x[i], t);
+
+                    }
+                    writer.WriteLine("Error = {0:E}", Math.Sqrt(error / d));
+                }
+
+                for (int i = 0; i < data.nodes; i++)
+                {
+                    data.b[i] = 0;
+
+                    for (int j = 0; j < data.nodes; j++)
+                        data.global[i, j] = 0;
+                }
             }
         }
     }
