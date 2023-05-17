@@ -97,7 +97,7 @@ namespace Kursovaya
                     data.l[k] = (data.l[k] - sl) / data.d[j];
                     sumd += data.u[k] * data.l[k];
                 }
-                data.d[i] = Math.Sqrt(Math.Abs(data.d[i] - sumd));
+                data.d[i] = Math.Sqrt(/*Math.Abs*/(data.d[i] - sumd));
             }
         }
 

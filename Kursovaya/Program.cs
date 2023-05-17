@@ -23,6 +23,9 @@ namespace Kursovaya
                 case 3:
                     result = 2 * x * y;
                     break;
+                case 4:
+                    result = 2 * x * x - 1;
+                    break;
                 default:
                     break;
             }
@@ -46,6 +49,9 @@ namespace Kursovaya
                 case 3:
                     result = 1;
                     break;
+                case 4:
+                    result = 1;
+                    break;
                 default:
                     break;
             }
@@ -67,6 +73,9 @@ namespace Kursovaya
                     result = 2;
                     break;
                 case 3:
+                    result = 2;
+                    break;
+                case 4:
                     result = 2;
                     break;
                 default:
@@ -125,6 +134,9 @@ namespace Kursovaya
                     break;
                 case 3:
                     result = x * y;
+                    break;
+                case 4:
+                    result = x * x;
                     break;
                 default:
                     break;
@@ -226,13 +238,14 @@ namespace Kursovaya
         // Рассчёт локального вектора правой части
         public static void CalcB(Cell cell, List<Node> nodes, double[] b)
         {
-            double koef = Math.Abs(cell.detD) / 6;
+            double detD = Math.Abs(cell.detD);
             double[] f = new double[3];
             for (int i = 0; i < 3; i++)
-            {
                 f[i] = Target(nodes[cell.v[i]].x, nodes[cell.v[i]].y, cell.area);
-                b[i] = koef * f[i];
-            }
+
+            b[0] = detD * (f[0] / 12 + f[1] / 24 + f[2] / 24);
+            b[1] = detD * (f[0] / 24 + f[1] / 12 + f[2] / 24);
+            b[2] = detD * (f[0] / 24 + f[1] / 24 + f[2] / 12);
         }
 
         // Генерация портрета матрицы
@@ -299,7 +312,7 @@ namespace Kursovaya
 
         static void Main(string[] args)
         {
-            int test = 3;
+            int test = 4;
             
             List<Node> nodes = new();
             List<Cell> cells = new();
@@ -398,6 +411,11 @@ namespace Kursovaya
                 Console.WriteLine(data.global[i, data.nodes - 1]);
             }
 
+            for (int i = 0; i < data.nodes; i++)
+            {
+                Console.WriteLine(data.b[i]);
+            }
+
             GenerateSparseGlobal(data);
             Consider1(nodes, data);
 
@@ -411,6 +429,14 @@ namespace Kursovaya
             for (int i = 0; i < data.nodes; i++)
             {
                 Console.WriteLine(data.b[i]);
+            }
+
+            for (int i = 0; i < data.nodes; i++)
+            {
+                double sum = 0;
+                for (int j = 0; j < data.nodes; j++)
+                    sum += data.global[i, j];
+                Console.WriteLine("Global Sum in str {0} = {1}", i + 1, sum);
             }
 
             SLAESolver solver = new();
